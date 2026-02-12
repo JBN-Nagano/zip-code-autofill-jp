@@ -77,7 +77,7 @@
 
 // メッセージイベントの監視
 window.addEventListener('message', event => { 
-    // ハブスポットからのコールバックか、フォームHTMLが準備できたか確認
+  // ハブスポットからのコールバックか、フォームHTMLが準備できたか確認
   if (event.data.type === 'hsFormCallback' && event.data.eventName === 'onFormReady') {
     
     // formのIDはイベントのデータID
@@ -140,6 +140,19 @@ window.addEventListener('message', event => {
             } else {
               console.warn('ZipCloud: 該当する住所が見つかりません', addr);
             }
+
+            if (addr && addr.results) {
+
+              // A. 結果が1件の場合: そのままセット
+              if (addr.results.length === 1) {
+                setAddress(addr.results[0]);
+              // B. 結果が複数の場合: モーダルを表示して選択させる
+              } else if (addr.results.length > 1) {
+                showAddressSelectionModal(addr.results);
+              } else {
+                console.warn('ZipCloud: 該当する住所が見つかりません');
+              }
+
             
             // 1-8. クリーンアップ　メモリの節約
             document.body.removeChild(scriptTag);
