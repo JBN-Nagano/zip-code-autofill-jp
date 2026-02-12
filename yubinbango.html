@@ -74,12 +74,18 @@
 /**
  * 1. HubSpotフォームが読み込まれた時の処理
  */
-window.addEventListener('message', event => {
+
+// メッセージイベントの監視
+window.addEventListener('message', event => { 
+    // ハブスポットからのコールバックか、フォームHTMLが準備できたか確認
   if (event.data.type === 'hsFormCallback' && event.data.eventName === 'onFormReady') {
     
+    // formのIDはイベントのデータID
     const formId = event.data.id;
+    // フォームそのものにはこのIDを持っているフォーム要素を詰め込む
     const form = document.querySelector('form[data-form-id="' + formId + '"]');
 
+    // フォームがあるなら
     if (form) { 
       
       // 1-1. フォーム内の主要なフィールドを取得
@@ -99,13 +105,16 @@ window.addEventListener('message', event => {
           if (!zipValue || zipValue.length !== 7) { // 7桁でなければ実行しない
             console.warn('郵便番号が7桁ではありません');
             return;
+          }else if(isNaN(zipValue)){
+            console.warn('郵便番号が数字ではありません');
+            return;
           }
 
           // 1-4. コールバック関数名を定義
           const callbackName = 'zipcloud_callback_' + zipValue;
           
           // 1-5. コールバック関数をグローバルに定義
-          window[callbackName] = function(addr) {
+          window[callbackName] = function(addr) { // ブラウザ全体のコールバックにaddr関数を登録
             
             if (addr && addr.results && addr.results.length > 0) {
               const result = addr.results[0];
@@ -118,6 +127,9 @@ window.addEventListener('message', event => {
               // ★★★ 解決策 ★★★
               // 1-7. 値を変更したことをHubSpotに通知するため、
               //      各フィールドでイベントを強制的に発火させる
+
+              // bubbles はバブリングフェーズでイベントが親要素へ伝搬されていくかどうか　http://qiita.com/ari-chel/items/8bc4138d158ec59edba1
+              // cancelable はイベントがキャンセル可能かどうか
               [stateInput, cityInput, addressInput].forEach(field => {
                 const inputEvent = new Event('input', { bubbles: true, cancelable: true });
                 const changeEvent = new Event('change', { bubbles: true, cancelable: true });
@@ -129,7 +141,7 @@ window.addEventListener('message', event => {
               console.warn('ZipCloud: 該当する住所が見つかりません', addr);
             }
             
-            // 1-8. クリーンアップ
+            // 1-8. クリーンアップ　メモリの節約
             document.body.removeChild(scriptTag);
             delete window[callbackName];
           };
@@ -138,6 +150,7 @@ window.addEventListener('message', event => {
           const scriptTag = document.createElement('script');
           scriptTag.src = 'https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + zipValue + '&callback=' + callbackName;
           
+          // スクリプトの読み込み(実行ではない)中に発生したエラーは error イベントで追跡することが可能です。
           scriptTag.onerror = function() {
              console.error('API_ERROR: ZipCloud APIへのリクエストに失敗しました');
              document.body.removeChild(scriptTag);
@@ -153,3 +166,8 @@ window.addEventListener('message', event => {
 });
 </script>
 {% endblock body %}
+
+<!-- 
+郵便番号を入力すると、自動で埋まるようになっている
+ユーザーが選べるようにする
+ -->
