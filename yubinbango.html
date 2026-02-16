@@ -8,18 +8,20 @@
 
 {% block body %}
 
-{# All templates are recommended to have an h1 present for both accessibility and SEO best practice. This should be at the top of the template before any other textual content. The h1 element below is within a dnd area to allow content editors the ability to adjust the content and alignment of the text. #}
+{# All templates are recommended to have an h1 present for both accessibility and SEO best practice. This should be at
+the top of the template before any other textual content. The h1 element below is within a dnd area to allow content
+editors the ability to adjust the content and alignment of the text. #}
 
 {#
 <form class="h-adr">
   <span class="p-country-name" style="display:none;">Japan</span>
   〒<input type="text" class="p-postal-code" size="8" maxlength="8">
-    <input type="text" class="p-region p-locality p-street-address p-extended-address" />
+  <input type="text" class="p-region p-locality p-street-address p-extended-address" />
 </form>
 #}
 {% dnd_area "dnd_area"
-  label="Main section",
-  class="body-container body-container--home"
+label="Main section",
+class="body-container body-container--home"
 %}
 
 
@@ -34,29 +36,30 @@
 {# Two column image left #}
 
 {% dnd_section
-    background_color="#f8fafc",
-    vertical_alignment="MIDDLE"
-  %}
+background_color="#f8fafc",
+vertical_alignment="MIDDLE"
+%}
 {% dnd_module
-      path="@hubspot/linked_image",
-      img={
-        "alt": "Stock placeholder image with grayscale geometrical mountain landscape",
-        "loading": "lazy",
-        "max_height": 451,
-        "max_width": 605,
-        "size_type": "auto_custom_max",
-        "src": get_asset_url("../images/grayscale-mountain.png")
-      },
-      offset=0,
-      width=6
-    %}
+path="@hubspot/linked_image",
+img={
+"alt": "Stock placeholder image with grayscale geometrical mountain landscape",
+"loading": "lazy",
+"max_height": 451,
+"max_width": 605,
+"size_type": "auto_custom_max",
+"src": get_asset_url("../images/grayscale-mountain.png")
+},
+offset=0,
+width=6
+%}
 {% end_dnd_module %}
 {% dnd_module
-      path="@hubspot/rich_text",
-      html="<h2>Provide more details here.</h2><p>Use text and images to tell your company’s story. Explain what makes your product or service extraordinary.</p>"
-      offset=6,
-      width=6
-    %}
+path="@hubspot/rich_text",
+html="<h2>Provide more details here.</h2>
+<p>Use text and images to tell your company’s story. Explain what makes your product or service extraordinary.</p>"
+offset=6,
+width=6
+%}
 {% end_dnd_module %}
 {% end_dnd_section %}
 
@@ -71,117 +74,120 @@
 {% end_dnd_area %}
 
 <script>
-/**
- * 1. HubSpotフォームが読み込まれた時の処理
- */
+  /**
+   * 1. HubSpotフォームが読み込まれた時の処理
+   */
 
-// メッセージイベントの監視
-window.addEventListener('message', event => { 
+  // メッセージイベントの監視
+  window.addEventListener('message', event => {
     // ハブスポットからのコールバックか、フォームHTMLが準備できたか確認
-  if (event.data.type === 'hsFormCallback' && event.data.eventName === 'onFormReady') {
-    
-    // formのIDはイベントのデータID
-    const formId = event.data.id;
-    // フォームそのものにはこのIDを持っているフォーム要素を詰め込む
-    const form = document.querySelector('form[data-form-id="' + formId + '"]');
+    if (event.data.type === 'hsFormCallback' && event.data.eventName === 'onFormReady') {
 
-    // フォームがあるなら
-    if (form) { 
-      
-      // 1-1. フォーム内の主要なフィールドを取得
-      const zipInput = form.querySelector('input[name="zip"]');
-      const stateInput = form.querySelector('input[name="state"]');
-      const cityInput = form.querySelector('input[name="city"]');
-      const addressInput = form.querySelector('input[name="address_text"]');
+      // formのIDはイベントのデータID
+      const formId = event.data.id;
+      // フォームそのものにはこのIDを持っているフォーム要素を詰め込む
+      const form = document.querySelector('form[data-form-id="' + formId + '"]');
 
-      // 1-2. 必要なフィールドがすべて揃っているか確認
-      if (zipInput && stateInput && cityInput && addressInput) {
-        
-        // 1-3. 郵便番号フィールドの blur イベントを監視
-        zipInput.addEventListener('blur', function() {
-          
-          const zipValue = this.value.replace(/-/g, ''); // ハイフン除去
-          
-          i// 2. 【追加】全角数字を半角数字に変換
-// (例: "１２３" -> "123")
-zipValue = zipValue.replace(/[０-９]/g, function(s) {
-    return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
-});
+      // フォームがあるなら
+      if (form) {
 
-// 3. バリデーション（空白などが含まれていないか厳密にチェック）
-if (!/^\d{7}$/.test(zipValue)) {
-    console.warn('郵便番号が正しくありません（半角数字7桁で入力してください）');
-    return;
-}
+        // 1-1. フォーム内の主要なフィールドを取得
+        const zipInput = form.querySelector('input[name="zip"]');
+        const stateInput = form.querySelector('input[name="state"]');
+        const cityInput = form.querySelector('input[name="city"]');
+        const addressInput = form.querySelector('input[name="address_text"]');
 
-          // 1-4. コールバック関数名を定義
-          const callbackName = 'zipcloud_callback_' + zipValue;
-          
-          // 1-5. コールバック関数をグローバルに定義
-          window[callbackName] = function(addr) { // ブラウザ全体のコールバックにaddr関数を登録
-            
-            if (addr && addr.results && addr.results.length > 0) {
-              const result = addr.results[0];
-              console.log("⭐️⭐️⭐️⭐️⭐️", result);
+        // 1-2. 必要なフィールドがすべて揃っているか確認
+        if (zipInput && stateInput && cityInput && addressInput) {
 
+          // 1-3. 郵便番号フィールドの blur イベントを監視
+          zipInput.addEventListener('blur', function () {
 
-              
-              switch (addr.results.length) {
-                case 0:
-              // 1-6. HubSpotフィールドに *直接* 値を設定
-              stateInput.value = result.address1 || '';
-              cityInput.value = result.address2 || '';
-              addressInput.value = result.address3 || '';
+            const zipValue = this.value.replace(/-/g, ''); // ハイフン除去
 
-              case 1:
-                              stateInput.value = result.address1;
-              cityInput.value = result.address2;
-              addressInput.value = result.address3;
-
-              default:
-                            // ここに分岐処理を入れる。複数郵便番号入力されていたらポップアップする。
-              
-              }
-              
-              // ★★★ 解決策 ★★★
-              // 1-7. 値を変更したことをHubSpotに通知するため、
-              //      各フィールドでイベントを強制的に発火させる
-
-              // bubbles はバブリングフェーズでイベントが親要素へ伝搬されていくかどうか　http://qiita.com/ari-chel/items/8bc4138d158ec59edba1
-              // cancelable はイベントがキャンセル可能かどうか
-              [stateInput, cityInput, addressInput].forEach(field => {
-                const inputEvent = new Event('input', { bubbles: true, cancelable: true });
-                const changeEvent = new Event('change', { bubbles: true, cancelable: true });
-                field.dispatchEvent(inputEvent);
-                field.dispatchEvent(changeEvent);
-              });
-
-            } else {
-              console.warn('ZipCloud: 該当する住所が見つかりません', addr);
+            if (!zipValue || zipValue.length !== 7) { // 7桁でなければ実行しない
+              console.warn('郵便番号が7桁ではありません');
+              return;
+            } else if (isNaN(zipValue)) {
+              console.warn('郵便番号が数字ではありません');
+              return;
             }
-            
-            // 1-8. クリーンアップ　メモリの節約
-            document.body.removeChild(scriptTag);
-            delete window[callbackName];
-          };
-          
-          // 1-9. スクリプトタグを動的に作成してJSONPリクエストを実行
-          const scriptTag = document.createElement('script');
-          scriptTag.src = 'https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + zipValue + '&callback=' + callbackName;
-          
-          // スクリプトの読み込み(実行ではない)中に発生したエラーは error イベントで追跡することが可能です。
-          scriptTag.onerror = function() {
-             console.error('API_ERROR: ZipCloud APIへのリクエストに失敗しました');
-             document.body.removeChild(scriptTag);
-             delete window[callbackName];
-          };
-          document.body.appendChild(scriptTag);
-        });
-      } else {
-        console.error('YubinBango Error: 必要なフォームフィールド (zip, state, city, address_text) が見つかりません。');
+
+            // 1-4. コールバック関数名を定義
+            const callbackName = 'zipcloud_callback_' + zipValue;
+
+            // 1-5. コールバック関数をグローバルに定義
+            window[callbackName] = function (addr) { // ブラウザ全体のコールバックにaddr関数を登録
+
+              if (addr && addr.results && addr.results.length > 0) {
+                const result = addr.results[0];
+
+                console.log("⭐️⭐️⭐️⭐️⭐️addr.results.length", addr.results.length);
+                switch (addr.results.length) {
+                  case 0:
+                    break;
+                  case 1:
+
+                    // 1-6. HubSpotフィールドに *直接* 値を設定
+                    stateInput.value = result.address1 || '';
+                    cityInput.value = result.address2 || '';
+                    addressInput.value = result.address3 || '';
+
+                    // ★★★ 解決策 ★★★
+                    // 1-7. 値を変更したことをHubSpotに通知するため、
+                    //      各フィールドでイベントを強制的に発火させる
+
+                    // bubbles はバブリングフェーズでイベントが親要素へ伝搬されていくかどうか　http://qiita.com/ari-chel/items/8bc4138d158ec59edba1
+                    // cancelable はイベントがキャンセル可能かどうか
+                    [stateInput, cityInput, addressInput].forEach(field => {
+                      const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+                      const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+                      field.dispatchEvent(inputEvent);
+                      field.dispatchEvent(changeEvent);
+                    });
+                    break;
+
+                  default:
+                    console.log("default⭐️⭐️⭐️⭐️⭐️");
+                    // ここにポップアップを入れる
+
+                    // 1-6. HubSpotフィールドに *直接* 値を設定
+                    break;
+
+                }
+
+                console.log("⭐️⭐️⭐️⭐️⭐️result", result);
+              } else {
+                console.warn('ZipCloud: 該当する住所が見つかりません', addr);
+              }
+
+              // 1-8. クリーンアップ　メモリの節約
+              document.body.removeChild(scriptTag);
+              delete window[callbackName];
+            };
+
+            // 1-9. スクリプトタグを動的に作成してJSONPリクエストを実行
+            const scriptTag = document.createElement('script');
+            scriptTag.src = 'https://zipcloud.ibsnet.co.jp/api/search?zipcode=' + zipValue + '&callback=' + callbackName;
+
+            // スクリプトの読み込み(実行ではない)中に発生したエラーは error イベントで追跡することが可能です。
+            scriptTag.onerror = function () {
+              console.error('API_ERROR: ZipCloud APIへのリクエストに失敗しました');
+              document.body.removeChild(scriptTag);
+              delete window[callbackName];
+            };
+            document.body.appendChild(scriptTag);
+          });
+        } else {
+          console.error('YubinBango Error: 必要なフォームフィールド (zip, state, city, address_text) が見つかりません。');
+        }
       }
     }
-  }
-});
+  });
 </script>
 {% endblock body %}
+
+<!-- 
+郵便番号を入力すると、自動で埋まるようになっている
+ユーザーが選べるようにする
+ -->
