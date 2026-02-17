@@ -227,12 +227,39 @@
                     const overlay = document.createElement("div");
                     overlay.className = "zipcloud-overlay";
 
-                    // モーダル
+                    // オーバーレイ削除と、ESCキー監視の解除を同時に行います
+                    const closeModal = () => {
+                      if (overlay.parentNode) {
+                        document.body.removeChild(overlay);
+                      }
+                      document.removeEventListener("keydown", onEscKey);
+                    };
+
+                    // --- ESCキーで閉じる ---
+                    const onEscKey = (e) => {
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        closeModal();
+                      }
+                    };
+                    document.addEventListener("keydown", onEscKey);
+
+                    // --- オーバーレイ（外側）クリックで閉じる ---
+                    overlay.onclick = (e) => {
+                      // クリックされたのがオーバーレイ自体の場合のみ閉じる
+                      // (モーダル内部のクリックでは閉じない)
+                      if (e.target === overlay) {
+                        e.preventDefault();
+                        closeModal();
+                      }
+                    };
+
+                    // モーダル本体
                     const modal = document.createElement("div");
                     modal.className = "zipcloud-modal";
 
                     modal.innerHTML =
-                      '<h3 style="margin:0 0 16px 0; font-size:18px; text-align:center; color:#333;">以下の住所から選択してください</h3>';
+                      '<h3 class="zipcloud-title">以下の住所から選択してください</h3>';
 
                     const fragment = document.createDocumentFragment();
 
@@ -248,7 +275,7 @@
                       btn.onclick = (e) => {
                         e.preventDefault();
                         updateZipCodeField(result);
-                        document.body.removeChild(overlay);
+                        closeModal(); // 共通関数を使用
                       };
                       fragment.appendChild(btn);
                     });
@@ -262,12 +289,18 @@
 
                     closeBtn.onclick = (e) => {
                       e.preventDefault();
-                      document.body.removeChild(overlay);
+                      closeModal(); // 共通関数を使用
                     };
                     modal.appendChild(closeBtn);
 
                     overlay.appendChild(modal);
                     document.body.appendChild(overlay);
+                    
+                    // モーダル内の最初のボタンにフォーカスを当てる（アクセシビリティ向上）
+                    setTimeout(() => {
+                        const firstBtn = modal.querySelector('button');
+                        if (firstBtn) firstBtn.focus();
+                    }, 10);
                     break;
                 }
               } else {
