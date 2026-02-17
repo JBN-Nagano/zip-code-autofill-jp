@@ -35,4 +35,15 @@ https://qiita.com/yutami/items/056cca9148e19770d8a4
 	],
 	"status": 200
 }
-	
+
+2/16
+テンプレートを確認したところ、
+
+<!--
+  templateType: "page"
+  label: "Yubinbango"
+  screenshotPath: "../images/template-previews/home.png"
+  isAvailableForNewContent: true
+-->
+
+このテンプレートタイプなどの記述が二箇所あり重複しているのが修正必要そうなのと、モーダル用のcssが{% block body %}の外側にあるためページに読み込まれていないようです。
