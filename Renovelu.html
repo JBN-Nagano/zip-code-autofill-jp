@@ -1,0 +1,221 @@
+<!--
+  templateType: page
+  isAvailableForNewContent: true
+  label: 資料ダウンロード（テスト）
+  screenshotPath: ../images/template-previews/page-no-header.png
+-->
+{% extends "./layouts/base.html" %}
+{% block header %}
+{% global_partial path="../templates/partials/header-2025.html" %}
+{% endblock header %}
+{% block body %}
+{% dnd_area "dnd_area"
+  label="Main section",
+  class="body-container body-container--page"
+%}
+
+{% end_dnd_area %}
+<style>
+  .hs_toiawasenaiyo_combine {
+    display: none;
+  }
+</style>
+<script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+<script>
+    window.addEventListener('message', event => {
+
+        if(event.data.type === 'hsFormCallback' && event.data.eventName === 'onFormReady') {
+            // 1. 都道府県（select[name="state"]）に「address-level1」を設定
+            $('select[name="state"]').attr('autocomplete', 'address-level1');
+
+            // 2. 住所（input[name="city"]）の属性を「address-line1」に変更
+            $('input[name="city"]').attr('autocomplete', 'address-line1');
+
+            $('input[name*=email]').change(function() {
+                let emailInput = $('input[name*=email]').val();
+                localStorage.setItem('email', emailInput);
+            }); //Eメール
+            const area1Input = $("input[name*=area1_text]");
+            let areadai1kibo = '';
+            $(document).on('change', 'select[name^=areadai1kibo_municipalities]', function() {
+                console.log("changed");
+                areadai1kibo = $('select[name*=areadai1kibo] option:selected').text();
+                $('input[name*=area1_text]').val('');
+                $('input[name*=area1_text]').val(areadai1kibo);
+            });
+            const area2Input = $("input[name*=area2_text]");
+            let areadai2kibo = '';
+            $(document).on('change', 'select[name^=areadai2kibo_municipalities]', function() {
+                areadai2kibo = $('select[name*=areadai2kibo] option:selected').text();
+                $('input[name*=area2_text]').val('');
+                $('input[name*=area2_text]').val(areadai2kibo);
+            });
+            const area3Input = $("input[name*=area3_text]");
+            let areadai3kibo = '';
+            $(document).on('change', 'select[name^=areadai3kibo_municipalities]', function() {
+                areadai3kibo = $('select[name*=areadai3kibo] option:selected').text();
+                $('input[name*=area3_text]').val('');
+                $('input[name*=area3_text]').val(areadai3kibo);
+            });
+            function textarea_combine () {
+                var selectedValue = $('input[name="raijyokibo_radio"]:checked').val();
+                const toiawasenaiyo2 = $("textarea[name*=toiawasenaiyo2]").val();
+                if (selectedValue == "true") {
+                    const combined_text = "SR見学希望です\n" + toiawasenaiyo2;
+                    $("textarea[name*=toiawasenaiyo_combine]").val(combined_text);
+                }
+                else {
+                    const combined_text = toiawasenaiyo2;
+                    $("textarea[name*=toiawasenaiyo_combine]").val(combined_text);
+                }
+            }
+            $("textarea[name*=toiawasenaiyo2]").change(function() {
+                textarea_combine();
+            });
+            $('input[name="raijyokibo_radio"]').change(function() {
+                textarea_combine();
+            });
+            const y = new Date().getFullYear();
+            const m = new Date().getMonth() + 1;
+            const d = new Date().getDate();
+            const w = new Date().getDay();
+            const h = new Date().getHours();
+            const min = new Date().getMinutes();
+            const s = new Date().getSeconds();
+            const t = new Date().getTime();
+            const renoveru_webid__c = String(y) + String(m) + String(d) + String(w) + String(h) + String(min) + String(s) + String(t);
+            sessionStorage.setItem("renoveru_webid__c", renoveru_webid__c);
+            $("input[name*=renoveru_webid__c]").val(renoveru_webid__c); //お問い合わせ番号
+            $("input[name*=renoveru_webid__c_unix]").val(t); //CAPI用イベントタイム
+            $("input[name*=client_user_agent_capi]").val(window.navigator.userAgent); //ユーザーエージェント
+            // HubSpotフォームの郵便番号フィールドと送信ボタンを取得
+            const zipInput = document.querySelector('[name="zip"]');
+            const submitButton = document.querySelector('.hs-button.primary.large');
+
+            // フィールドが存在しない場合は終了
+            if (!zipInput || !submitButton) return;
+
+            // バリデーション用の正規表現
+            const zipRegex = /^\d{7}$|^\d{3}-\d{4}$/;
+            const errorMsgText = "半角7桁の数字のみ、またはハイフン付きの形式（例: 1234567 または 123-4567）で入力してください。";
+
+            // エラーメッセージの作成関数
+            function createErrorMsg() {
+                const ul = document.createElement("ul");
+                ul.classList.add("no-list", "hs-error-msgs", "inputs-list");
+                ul.setAttribute("role", "alert");
+
+                const li = document.createElement("li");
+                const label = document.createElement("label");
+                label.classList.add("hs-error-msg", "hs-main-font-element");
+                label.textContent = errorMsgText;
+
+                li.appendChild(label);
+                ul.appendChild(li);
+
+                return ul;
+            }
+
+            // 送信ボタンの状態を更新する関数
+            function updateSubmitButtonState() {
+                if (zipRegex.test(zipInput.value)) {
+                    // 正しい郵便番号の場合、送信ボタンを有効化
+                    submitButton.disabled = false;
+                } else {
+                    // 誤った形式の場合、送信ボタンを無効化
+                    submitButton.disabled = true;
+                }
+            }
+
+            // 入力時のバリデーションチェック
+            zipInput.addEventListener("input", function () {
+                const zipValue = zipInput.value;
+                const errorMsgContainer = zipInput.closest(".input").nextElementSibling;
+
+                // バリデーションチェック
+                if (zipRegex.test(zipValue)) {
+                    // バリデーション成功時、エラーメッセージを削除
+                    zipInput.classList.remove("invalid", "error");
+                    zipInput.classList.add("valid");
+
+                    if (errorMsgContainer && errorMsgContainer.classList.contains("hs-error-msgs")) {
+                        errorMsgContainer.remove();
+                    }
+                } else {
+                    // バリデーション失敗時、エラーメッセージを表示
+                    zipInput.classList.remove("valid");
+                    zipInput.classList.add("invalid", "error");
+
+                    // エラーメッセージが存在しない場合のみ追加
+                    if (!errorMsgContainer || !errorMsgContainer.classList.contains("hs-error-msgs")) {
+                        const errorMsg = createErrorMsg();
+                        zipInput.closest(".input").insertAdjacentElement("afterend", errorMsg);
+                    }
+                }
+
+                // 送信ボタンの状態を更新
+                updateSubmitButtonState();
+            });
+
+            // 初期状態で送信ボタンを無効化
+            updateSubmitButtonState();
+
+            // クッキーを取得する関数
+            function getCookie(name) {
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    let cookie = cookies[i].trim();
+                    if (cookie.startsWith(name + "=")) {
+                        return cookie.substring(name.length + 1);
+                    }
+                }
+                return null; // クッキーが見つからない場合はnullを返す
+            }
+
+            // _fbp と _fbc の値を取得してフォームにセットする
+            function setFbpAndFbc() {
+                console.log("クッキー情報: ", document.cookie); // クッキーの確認
+
+                let fbp = getCookie("_fbp") || localStorage.getItem("_fbp"); // クッキー or ローカルストレージから取得
+                let fbc = getCookie("_fbc") || localStorage.getItem("_fbc");
+
+                console.log("_fbp:", fbp, "_fbc:", fbc); // 値の確認
+
+                // _fbpが取得できない場合は、Facebook Pixelをトリガーして取得を試みる
+                if (!fbp && window.fbq) {
+                    console.log("fbpが取得できないため、Facebook Pixelを実行");
+                    fbq('track', 'PageView'); // 強制的にピクセルイベントをトリガー
+                    setTimeout(() => {
+                        fbp = getCookie("_fbp");
+                        if (fbp) {
+                            localStorage.setItem("_fbp", fbp); // ローカルストレージに保存
+                        }
+                    }, 2000); // 2秒遅延して取得
+                }
+
+                // フォーム要素が存在するかチェック
+                setTimeout(() => {
+                    let fbpInput = document.querySelector("input[name*=browser_id_fbp_capi]");
+                    let fbcInput = document.querySelector("input[name*=click_id_fbc_capi]");
+
+                    if (fbp && fbpInput) {
+                        fbpInput.value = fbp;
+                    }
+                    if (fbc && fbcInput) {
+                        fbcInput.value = fbc;
+                    }
+                }, 1000); // 1秒遅延させてフォームのロードを待つ
+            }
+
+            // 実行
+            setFbpAndFbc();
+        }
+        if(event.data.type === 'hsFormCallback' && event.data.eventName === 'onFormSubmitted') {
+            window.location = '/contacts/document/thanks#application';
+        }
+    }, false);
+</script>
+{% endblock body %}
+{% block footer %}
+{% global_partial path="../templates/partials/footer-2025.html" %}
+{% endblock footer %}
