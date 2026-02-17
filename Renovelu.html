@@ -1,9 +1,3 @@
-<!--
-  templateType: page
-  isAvailableForNewContent: true
-  label: 資料ダウンロード（テスト）
-  screenshotPath: ../images/template-previews/page-no-header.png
--->
 {% extends "./layouts/base.html" %}
 {% block header %}
 {% global_partial path="../templates/partials/header-2025.html" %}
@@ -19,12 +13,91 @@
   .hs_toiawasenaiyo_combine {
     display: none;
   }
+
+  /* --- 住所自動入力（ZipCloud）用スタイル --- */
+  /* モーダルの背景（オーバーレイ） */
+  .zipcloud-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* モーダル本体 */
+  .zipcloud-modal {
+    background-color: #fff;
+    padding: 24px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    text-align: left;
+  }
+
+  /* 見出し */
+  .zipcloud-title {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    text-align: center;
+    color: #333;
+    font-weight: bold;
+  }
+
+  /* 住所選択ボタン */
+  .zipcloud-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    color: #495057;
+    transition: background-color 0.2s;
+  }
+
+  /* 住所選択ボタン：ホバー時 */
+  .zipcloud-btn:hover {
+    background-color: #e9ecef;
+  }
+
+  /* キャンセルボタン */
+  .zipcloud-cancel-btn {
+    margin-top: 16px;
+    padding: 8px 16px;
+    cursor: pointer;
+    background-color: transparent;
+    color: #666;
+    border: none;
+    display: block;
+    width: 100%;
+    text-decoration: underline;
+  }
+
+  .zipcloud-cancel-btn:hover {
+    color: #333;
+  }
 </style>
 <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
 <script>
     window.addEventListener('message', event => {
 
         if(event.data.type === 'hsFormCallback' && event.data.eventName === 'onFormReady') {
+            // フォームIDからフォーム要素を特定
+            const formId = event.data.id;
+            const form = document.querySelector('form[data-form-id="' + formId + '"]');
+
             // 1. 都道府県（select[name="state"]）に「address-level1」を設定
             $('select[name="state"]').attr('autocomplete', 'address-level1');
 
@@ -88,7 +161,10 @@
             $("input[name*=renoveru_webid__c]").val(renoveru_webid__c); //お問い合わせ番号
             $("input[name*=renoveru_webid__c_unix]").val(t); //CAPI用イベントタイム
             $("input[name*=client_user_agent_capi]").val(window.navigator.userAgent); //ユーザーエージェント
+            
             // HubSpotフォームの郵便番号フィールドと送信ボタンを取得
+            // 注意: 郵便番号フィールドは後続のZipCloudロジックでも使用しますが、
+            // 既存のバリデーションロジックと競合しないようインスタンスを共有または再取得します。
             const zipInput = document.querySelector('[name="zip"]');
             const submitButton = document.querySelector('.hs-button.primary.large');
 
@@ -98,6 +174,7 @@
             // バリデーション用の正規表現
             const zipRegex = /^\d{7}$|^\d{3}-\d{4}$/;
             const errorMsgText = "半角7桁の数字のみ、またはハイフン付きの形式（例: 1234567 または 123-4567）で入力してください。";
+            console.log("⭐️⭐️⭐️⭐️⭐️zipInput",zipInput)
 
             // エラーメッセージの作成関数
             function createErrorMsg() {
@@ -159,6 +236,180 @@
 
             // 初期状態で送信ボタンを無効化
             updateSubmitButtonState();
+            
+            // 【修正箇所】ここに余分な「}」がありましたが削除しました
+
+            // --- ここから追加：ZipCloud APIによる住所自動入力ロジック ---
+            if (form) {
+                const zipInputForApi = form.querySelector('input[name="zip"]');
+                const stateInput = form.querySelector('select[name="state"]') || form.querySelector('input[name="state"]');
+                const cityInput = form.querySelector('input[name="city"]');
+                // address_textが存在しない場合のフォールバックとしてaddressも考慮
+                const addressInput = form.querySelector('input[name="address_text"]') || form.querySelector('input[name="address"]');
+
+                if (zipInputForApi && stateInput && cityInput && addressInput) {
+                    zipInputForApi.addEventListener("blur", function () {
+                        // 全角数字を半角数字に変換し、ハイフンを消す
+                        const zipValue = this.value
+                            .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
+                                String.fromCharCode(s.charCodeAt(0) - 0xfee0),
+                            )
+                            .replace(/[^0-9]/g, "");
+                        
+                        // バリデーション用ロジックとは独立して値をセット（UX向上）
+                        // ただし、バリデーションロジックはinputイベントで発火するため、
+                        // ここで値を書き換えた場合は別途inputイベントを発火させたほうが親切だが、
+                        // HubSpotのフィールド制御と競合しないよう、ここでは値の整形とAPIコールに留める。
+
+                        if (!zipValue || isNaN(zipValue)) {
+                            // API処理としては警告を出して終了（バリデーションエラーは既存ロジックが担当）
+                            console.warn("郵便番号が正しくありません");
+                            return;
+                        } else if (zipValue.length !== 7) {
+                            console.warn("郵便番号の桁数が正しくありません");
+                            return;
+                        }
+                        console.log("⭐️⭐️⭐️⭐️⭐️zipValue",zipValue)
+
+                        const callbackName = "zipcloud_callback_" + zipValue;
+
+                        // コールバック関数定義
+                        window[callbackName] = function (addr) {
+                            const updateZipCodeField = (data) => {
+                                // 値をセット
+                                // ZipCloud: address1=都道府県, address2=市区町村, address3=町域
+                                stateInput.value = data.address1 || "";
+                                cityInput.value = data.address2 || "";
+                                addressInput.value = data.address3 || "";
+
+                                // HubSpotに通知（イベント発火）
+                                // React等の仮想DOMが変更を検知するために必要
+                                [stateInput, cityInput, addressInput].forEach((field) => {
+                                    field.dispatchEvent(
+                                        new Event("input", { bubbles: true, cancelable: true }),
+                                    );
+                                    field.dispatchEvent(
+                                        new Event("change", { bubbles: true, cancelable: true }),
+                                    );
+                                });
+                            };
+
+                            if (addr && addr.results && addr.results.length > 0) {
+                                console.log("⭐️⭐️⭐️⭐️⭐️⭐️addr", addr);
+                                switch (addr.results.length) {
+                                    case 0:
+                                        console.warn("該当する住所が見つかりませんでした。");
+                                        break;
+
+                                    case 1:
+                                        updateZipCodeField(addr.results[0]);
+                                        break;
+
+                                    default:
+                                        // 複数件ヒット時のポップアップ処理
+                                        const overlay = document.createElement("div");
+                                        overlay.className = "zipcloud-overlay";
+
+                                        // オーバーレイ削除と、ESCキー監視の解除を同時に行います
+                                        const closeModal = () => {
+                                            if (overlay.parentNode) {
+                                                document.body.removeChild(overlay);
+                                            }
+                                            document.removeEventListener("keydown", onEscKey);
+                                        };
+
+                                        // --- ESCキーで閉じる ---
+                                        const onEscKey = (e) => {
+                                            if (e.key === "Escape") {
+                                                e.preventDefault();
+                                                closeModal();
+                                            }
+                                        };
+                                        document.addEventListener("keydown", onEscKey);
+
+                                        // --- オーバーレイ（外側）クリックで閉じる ---
+                                        overlay.onclick = (e) => {
+                                            if (e.target === overlay) {
+                                                e.preventDefault();
+                                                closeModal();
+                                            }
+                                        };
+
+                                        // モーダル本体
+                                        const modal = document.createElement("div");
+                                        modal.className = "zipcloud-modal";
+
+                                        modal.innerHTML =
+                                            '<h3 class="zipcloud-title">以下の住所から選択してください</h3>';
+
+                                        const fragment = document.createDocumentFragment();
+
+                                        // ボタン生成ループ
+                                        addr.results.forEach((result) => {
+                                            const btn = document.createElement("button");
+                                            btn.textContent =
+                                                result.address1 + result.address2 + result.address3;
+
+                                            btn.className = "zipcloud-btn";
+
+                                            // クリックイベント
+                                            btn.onclick = (e) => {
+                                                e.preventDefault();
+                                                updateZipCodeField(result);
+                                                closeModal();
+                                            };
+                                            fragment.appendChild(btn);
+                                        });
+
+                                        modal.appendChild(fragment);
+
+                                        // キャンセルボタン
+                                        const closeBtn = document.createElement("button");
+                                        closeBtn.textContent = "キャンセル";
+                                        closeBtn.className = "zipcloud-cancel-btn";
+
+                                        closeBtn.onclick = (e) => {
+                                            e.preventDefault();
+                                            closeModal();
+                                        };
+                                        modal.appendChild(closeBtn);
+
+                                        overlay.appendChild(modal);
+                                        document.body.appendChild(overlay);
+
+                                        // モーダル内の最初のボタンにフォーカスを当てる（アクセシビリティ向上）
+                                        setTimeout(() => {
+                                            const firstBtn = modal.querySelector('button');
+                                            if (firstBtn) firstBtn.focus();
+                                        }, 10);
+                                        break;
+                                }
+                            } else {
+                                console.warn("ZipCloud: 該当なし。該当する住所が見つかりませんでした。", addr);
+                            }
+
+                            // クリーンアップ
+                            document.body.removeChild(scriptTag);
+                            delete window[callbackName];
+                        };
+
+                        // APIリクエスト
+                        const scriptTag = document.createElement("script");
+                        scriptTag.src =
+                            "https://zipcloud.ibsnet.co.jp/api/search?zipcode=" +
+                            zipValue +
+                            "&callback=" +
+                            callbackName;
+
+                        scriptTag.onerror = function () {
+                            console.error("API_ERROR: リクエスト失敗");
+                            document.body.removeChild(scriptTag);
+                            delete window[callbackName];
+                        };
+                        document.body.appendChild(scriptTag);
+                    });
+                }
+            }
 
             // クッキーを取得する関数
             function getCookie(name) {
