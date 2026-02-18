@@ -257,16 +257,14 @@
                 document.body.appendChild(overlay);
             }
 
-            // ▼▼▼▼▼▼▼ 修正箇所：郵便番号入力時の処理 ▼▼▼▼▼▼▼
             zipInput.addEventListener("input", function (e) {
                 // 1. 現在の入力値を取得
                 let val = zipInput.value;
 
-                // 2. 全角→半角変換、および数字以外（ハイフン含む）の除去を実行
-                let normalizedVal = val.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
-                        String.fromCharCode(s.charCodeAt(0) - 0xfee0)
-                    )
-                    .replace(/[^0-9]/g, "");
+                // 2. 全角数字を半角変換、および半角ハイフンの除去を実行（文字などのテキストは残す）
+                let normalizedVal = val
+                    .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+                    .replace(/-/g, "");
 
                 // 3. 値に変更があった場合のみDOMを更新（カーソル位置飛び防止のため）
                 if (val !== normalizedVal) {
@@ -286,7 +284,6 @@
                         errorMsgContainer.remove();
                     }
 
-                    // ★ API呼び出し処理 ★
                     // 既に normalizedVal は数字のみになっているのでそのまま使用
                     $.ajax({
                         url: "https://zipcloud.ibsnet.co.jp/api/search",
