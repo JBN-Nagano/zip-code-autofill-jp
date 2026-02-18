@@ -1,9 +1,3 @@
-<!--
-  templateType: page
-  isAvailableForNewContent: true
-  label: 資料ダウンロード（テスト）
-  screenshotPath: ../images/template-previews/page-no-header.png
--->
 {% extends "./layouts/base.html" %}
 {% block header %}
 {% global_partial path="../templates/partials/header-2025.html" %}
@@ -238,6 +232,29 @@
                 title.textContent = '住所を選択してください';
                 modal.appendChild(title);
 
+                // --- 閉じるための共通関数 ---
+                const closeModal = () => {
+                    overlay.remove();
+                    // イベントリスナーを削除（メモリリーク防止）
+                    document.removeEventListener('keydown', handleEscKey);
+                };
+
+                // --- ESCキーで閉じる処理 ---
+                const handleEscKey = (e) => {
+                    if (e.key === 'Escape') {
+                        closeModal();
+                    }
+                };
+                document.addEventListener('keydown', handleEscKey);
+
+                // --- モーダル外（背景）クリックで閉じる処理 ---
+                overlay.addEventListener('click', (e) => {
+                    // クリックされた要素がoverlayそのものの場合のみ閉じる
+                    if (e.target === overlay) {
+                        closeModal();
+                    }
+                });
+
                 results.forEach(addr => {
                     const btn = document.createElement('button');
                     btn.type = 'button';
@@ -248,7 +265,7 @@
                     btn.addEventListener('click', () => {
                         setHubSpotFieldValue('select[name="state"]', addr.address1); // 都道府県
                         setHubSpotFieldValue('input[name="city"]', fullAddr); // 市区町村以下
-                        overlay.remove();
+                        closeModal(); // 選択後閉じる
                     });
                     modal.appendChild(btn);
                 });
@@ -257,7 +274,7 @@
                 cancelBtn.className = 'zipcloud-cancel-btn';
                 cancelBtn.textContent = 'キャンセル';
                 cancelBtn.addEventListener('click', () => {
-                    overlay.remove();
+                    closeModal(); // キャンセル時閉じる
                 });
                 modal.appendChild(cancelBtn);
 
