@@ -1,3 +1,9 @@
+<!--
+  templateType: page
+  isAvailableForNewContent: true
+  label: 資料ダウンロード（テスト）
+  screenshotPath: ../images/template-previews/page-no-header.png
+-->
 {% extends "./layouts/base.html" %}
 {% block header %}
 {% global_partial path="../templates/partials/header-2025.html" %}
@@ -282,6 +288,22 @@
                 document.body.appendChild(overlay);
             }
 
+            // サニタイズ（エスケープ）用関数の定義
+            function escapeHtml(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[&<>"'`]/g, function(match) {
+                    const escapeMap = {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;',
+                        '`': '&#x60;'
+                    };
+                    return escapeMap[match];
+                });
+            }
+
             zipInput.addEventListener("input", function (e) {
                 // 1. 現在の入力値を取得
                 let val = zipInput.value;
@@ -317,15 +339,29 @@
                         dataType: "jsonp", // クロスドメイン対策
                         success: function(data) {
                             if (data.results) {
-                                if (data.results.length === 1) {
+                                // 取得したデータをすべてエスケープ処理して新しい配列を作る
+                                const safeResults = data.results.map(addr => {
+                                    return {
+                                        address1: escapeHtml(addr.address1),
+                                        address2: escapeHtml(addr.address2),
+                                        address3: escapeHtml(addr.address3),
+                                        kana1: escapeHtml(addr.kana1),
+                                        kana2: escapeHtml(addr.kana2),
+                                        kana3: escapeHtml(addr.kana3),
+                                        prefcode: escapeHtml(addr.prefcode),
+                                        zipcode: escapeHtml(addr.zipcode)
+                                    };
+                                });
+
+                                if (safeResults.length === 1) {
                                     // 候補が1つの場合：直接セット
-                                    const result = data.results[0];
+                                    const result = safeResults[0];
                                     const addressRest = result.address2 + result.address3;
                                     setHubSpotFieldValue('select[name="state"]', result.address1);
                                     setHubSpotFieldValue('input[name="city"]', addressRest);
                                 } else {
-                                    // 候補が複数の場合：モーダル表示
-                                    showAddressModal(data.results);
+                                    // 候補が複数の場合：モーダル表示（エスケープ済みのデータを渡す）
+                                    showAddressModal(safeResults);
                                 }
                             } else {
                                 console.log('該当する住所が見つかりませんでした。');
