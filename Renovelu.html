@@ -171,8 +171,9 @@
             if (!zipInput || !submitButton) return;
 
             // バリデーション用の正規表現
-            const zipRegex = /^\d{7}$|^\d{3}-\d{4}$/;
-            const errorMsgText = "半角7桁の数字のみ、またはハイフン付きの形式（例: 1234567 または 123-4567）で入力してください。";
+            // 注意: 入力時にハイフンを除去するため、実質的に7桁の数字のみをチェックします
+            const zipRegex = /^\d{7}$/;
+            const errorMsgText = "半角7桁の数字のみで入力してください。";
 
             // エラーメッセージの作成関数
             function createErrorMsg() {
@@ -257,12 +258,26 @@
             }
 
             // ▼▼▼▼▼▼▼ 修正箇所：郵便番号入力時の処理 ▼▼▼▼▼▼▼
-            zipInput.addEventListener("input", function () {
-                const zipValue = zipInput.value;
+            zipInput.addEventListener("input", function (e) {
+                // 1. 現在の入力値を取得
+                let val = zipInput.value;
+
+                // 2. 全角→半角変換、および数字以外（ハイフン含む）の除去を実行
+                let normalizedVal = val.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
+                        String.fromCharCode(s.charCodeAt(0) - 0xfee0)
+                    )
+                    .replace(/[^0-9]/g, "");
+
+                // 3. 値に変更があった場合のみDOMを更新（カーソル位置飛び防止のため）
+                if (val !== normalizedVal) {
+                    zipInput.value = normalizedVal;
+                    val = normalizedVal; // バリデーション用に変数を更新
+                }
+
                 const errorMsgContainer = zipInput.closest(".input").nextElementSibling;
 
-                // バリデーションチェック
-                if (zipRegex.test(zipValue)) {
+                // バリデーションチェック（正規化済みのため、7桁数字のみチェック）
+                if (zipRegex.test(val)) {
                     // --- バリデーション成功 ---
                     zipInput.classList.remove("invalid", "error");
                     zipInput.classList.add("valid");
@@ -272,16 +287,11 @@
                     }
 
                     // ★ API呼び出し処理 ★
-                    // ハイフンを除去して7桁にする
-                    const cleanZip = zipValue.replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) =>
-                                String.fromCharCode(s.charCodeAt(0) - 0xfee0),
-                            )
-                            .replace(/[^0-9]/g, "");
-                    
+                    // 既に normalizedVal は数字のみになっているのでそのまま使用
                     $.ajax({
                         url: "https://zipcloud.ibsnet.co.jp/api/search",
                         type: "GET",
-                        data: { zipcode: cleanZip },
+                        data: { zipcode: val },
                         dataType: "jsonp", // クロスドメイン対策
                         success: function(data) {
                             if (data.results) {
